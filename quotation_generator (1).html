@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quotation Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #e8f0ff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .header, .section {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .section div {
+      width: 48%;
+    }
+    h2 {
+      margin-bottom: 5px;
+      color: #003366;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background: #003366;
+      color: #fff;
+    }
+    .total {
+      text-align: right;
+      font-weight: bold;
+    }
+    .btn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: #003366;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #002244;
+    }
+    .meta-info {
+      margin-top: 10px;
+      margin-bottom: 20px;
+      background: #f0f6ff;
+      padding: 15px;
+      border-left: 5px solid #003366;
+      border-radius: 8px;
+    }
+    .meta-info p {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="quotation">
+    <div class="meta-info">
+      <p><strong>Enquiry No:</strong> ENQ-2025/001</p>
+      <p><strong>Quotation No:</strong> <span id="quotation-no"></span></p>
+    </div>
+
+    <div class="header">
+      <div>
+        <h2>Client Details</h2>
+        <p><strong>Name:</strong> Client Name</p>
+        <p><strong>Address:</strong> Client Address</p>
+        <p><strong>Email:</strong> client@email.com</p>
+        <p><strong>Phone:</strong> +91-1234567890</p>
+        <p><strong>GSTIN:</strong> <span id="client-gstin">27ABCDE1234F1Z5</span></p>
+      </div>
+      <div>
+        <h2>My Company</h2>
+        <p><strong>Name:</strong> My Company Name</p>
+        <p><strong>Address:</strong> My Company Address</p>
+        <p><strong>Email:</strong> contact@company.com</p>
+        <p><strong>Phone:</strong> +91-9876543210</p>
+        <p><strong>GSTIN:</strong> 27XYZAB1234C1Z7</p>
+      </div>
+    </div>
+
+    <hr>
+    <h2>Quotation</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Unit Price (INR)</th>
+          <th>GST (%)</th>
+          <th>GST Amount (INR)</th>
+          <th>Total With GST (INR)</th>
+        </tr>
+      </thead>
+      <tbody id="items-body">
+        <tr>
+          <td>1</td>
+          <td>Web Development</td>
+          <td>1</td>
+          <td>10000</td>
+          <td>18%</td>
+          <td>1800</td>
+          <td>11800</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Domain & Hosting</td>
+          <td>1</td>
+          <td>2000</td>
+          <td>18%</td>
+          <td>360</td>
+          <td>2360</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <br>
+    <table>
+      <tbody id="tax-summary">
+        <tr>
+          <td style="text-align:right; width: 80%;"><strong>Subtotal:</strong></td>
+          <td style="text-align:center;">INR 12,000</td>
+        </tr>
+        <tr id="tax-row"></tr>
+        <tr>
+          <td style="text-align:right;"><strong>Total:</strong></td>
+          <td style="text-align:center;"><strong id="grand-total">INR 14,160</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button class="btn" onclick="downloadPDF()">Download PDF</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    function getNextQuotationNumber() {
+      const stored = localStorage.getItem("quotationNumber") || "DIV/00";
+      const prefix = stored.split("/")[0];
+      const number = parseInt(stored.split("/")[1]) + 1;
+      const newNumber = `${prefix}/${String(number).padStart(2, '0')}`;
+      localStorage.setItem("quotationNumber", newNumber);
+      return newNumber;
+    }
+
+    function setQuotationNumber() {
+      const currentNo = getNextQuotationNumber();
+      document.getElementById("quotation-no").textContent = currentNo;
+    }
+
+    function calculateGST() {
+      const gstin = document.getElementById("client-gstin").textContent;
+      const isSameState = gstin.startsWith("27");
+
+      const subtotal = 12000;
+      const totalGST = 2160;
+      const grandTotal = subtotal + totalGST;
+
+      let taxHTML = "";
+
+      if (isSameState) {
+        const sgst = totalGST / 2;
+        const cgst = totalGST / 2;
+        taxHTML += `<td style='text-align:right;'><strong>SGST (9%) + CGST (9%):</strong></td>`;
+        taxHTML += `<td style='text-align:center;'>INR ${sgst.toFixed(2)} + INR ${cgst.toFixed(2)}</td>`;
+      } else {
+        taxHTML += `<td style='text-align:right;'><strong>IGST (18%):</strong></td>`;
+        taxHTML += `<td style='text-align:center;'>INR ${totalGST.toFixed(2)}</td>`;
+      }
+
+      document.getElementById("tax-row").innerHTML = taxHTML;
+      document.getElementById("grand-total").textContent = `INR ${grandTotal.toFixed(2)}`;
+    }
+
+    function downloadPDF() {
+      calculateGST();
+      const element = document.getElementById("quotation");
+      const opt = {
+        margin:       0.5,
+        filename:     'Quotation.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    calculateGST();
+    setQuotationNumber();
+  </script>
+</body>
+</html>
